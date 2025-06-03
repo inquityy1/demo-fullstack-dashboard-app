@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import { logout } from "../auth/authSlice";
 import {
@@ -11,12 +11,12 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import ApexChart from "react-apexcharts";
-import { Responsive, WidthProvider, type Layouts } from "react-grid-layout";
+import { Responsive, type Layouts } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
-// Wrap the grid so it measures its container’s width
-const ResponsiveGridLayout = WidthProvider(Responsive);
+// 1) Instead of WidthProvider(Responsive), we’ll just use Responsive
+const ResponsiveGridLayout = Responsive;
 
 // Styled “Dashboard” title with a hover effect using MUI’s styled
 const HoverTitle = styled(Typography)(({ theme }) => ({
@@ -52,7 +52,7 @@ export function Dashboard() {
     },
   ];
 
-  // ApexCharts options
+  // ApexCharts options (unchanged)
   const chartOptions: ApexCharts.ApexOptions = {
     chart: {
       id: "dashboard-metric",
@@ -94,7 +94,7 @@ export function Dashboard() {
     colors: [theme.palette.primary.main],
   };
 
-  // Define how the chart behaves at different breakpoints (narrower widths)
+  // Define how the chart behaves at different breakpoints
   const defaultLayouts: Layouts = {
     lg: [{ i: "chart1", x: 0, y: 0, w: 4, h: 8 }],
     md: [{ i: "chart1", x: 0, y: 0, w: 4, h: 8 }],
@@ -103,7 +103,24 @@ export function Dashboard() {
     xxs: [{ i: "chart1", x: 0, y: 0, w: 1, h: 8 }],
   };
 
+  // 2) Layout state (unchanged)
   const [layouts, setLayouts] = useState<Layouts>(defaultLayouts);
+
+  // 3) Create a ref + state for measuring
+  const gridContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // 4) On mount and resize, measure the container’s pixel width
+  useEffect(() => {
+    function measure() {
+      if (gridContainerRef.current) {
+        setContainerWidth(gridContainerRef.current.offsetWidth);
+      }
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   return (
     // Full grey background
@@ -134,35 +151,37 @@ export function Dashboard() {
         </Toolbar>
       </AppBar>
 
-      {/* Main content full width */}
-      <Box sx={{ width: "100%", px: { xs: 2, md: 4 }, py: 4 }}>
-        <ResponsiveGridLayout
-          className="layout"
-          layouts={layouts}
-          breakpoints={{ lg: 1200, md: 960, sm: 600, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 8, xs: 4, xxs: 2 }}
-          rowHeight={40}
-          isDraggable={true}
-          isResizable={true}
-          measureBeforeMount={true}
-          useCSSTransforms={true}
-          margin={[24, 24]}
-          containerPadding={[0, 0]}
-          onLayoutChange={(_current, all) => setLayouts(all)}
-          compactType={null}
-        >
-          {/* Chart panel */}
-          <div key="chart1">
-            <ChartCard>
-              <ApexChart
-                options={chartOptions}
-                series={chartSeries}
-                type="line"
-                height="100%"
-              />
-            </ChartCard>
-          </div>
-        </ResponsiveGridLayout>
+      {/* Main content: wrap grid in a measured <div> */}
+      <Box sx={{ px: { xs: 2, md: 4 }, py: 4 }}>
+        <div ref={gridContainerRef} style={{ width: "100%" }}>
+          <ResponsiveGridLayout
+            className="layout"
+            layouts={layouts}
+            width={containerWidth}
+            breakpoints={{ lg: 1200, md: 960, sm: 600, xs: 480, xxs: 0 }}
+            cols={{ lg: 12, md: 10, sm: 8, xs: 4, xxs: 2 }}
+            rowHeight={40}
+            isDraggable={true}
+            isResizable={true}
+            useCSSTransforms={true}
+            margin={[24, 24]}
+            containerPadding={[0, 0]}
+            onLayoutChange={(_current, all) => setLayouts(all)}
+            compactType={null}
+          >
+            {/* Chart panel */}
+            <div key="chart1">
+              <ChartCard>
+                <ApexChart
+                  options={chartOptions}
+                  series={chartSeries}
+                  type="line"
+                  height="100%"
+                />
+              </ChartCard>
+            </div>
+          </ResponsiveGridLayout>
+        </div>
       </Box>
     </Box>
   );
