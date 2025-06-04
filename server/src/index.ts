@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { Pool } from "pg";
 import dotenv from "dotenv";
+import chartRoutes from "./routes/chartRoutes";
 import authRoutes from "./routes/authRoutes";
 
 dotenv.config();
@@ -18,6 +19,8 @@ pool
 
 // Mount auth endpoints:
 app.use("/api/auth", authRoutes);
+
+app.use("/api/charts", chartRoutes);
 
 // (Optional) health-check
 app.get("/api/health", (req: Request, res: Response) => {

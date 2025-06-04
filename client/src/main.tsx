@@ -5,6 +5,8 @@ import { store } from "./app/store";
 import App from "./App";
 import "./index.css";
 
+import "./axiosConfig";
+
 const container = document.getElementById("root");
 if (!container) {
   throw new Error("Couldn't find #root element");

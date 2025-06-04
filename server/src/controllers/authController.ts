@@ -23,13 +23,13 @@ export async function register(req: Request, res: Response) {
 }
 
 export async function login(req: Request, res: Response) {
-  console.log(">>>> /api/auth/login called, req.body:", req.body);
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password required" });
   }
 
   const user = await findUserByEmail(email);
+
   if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
