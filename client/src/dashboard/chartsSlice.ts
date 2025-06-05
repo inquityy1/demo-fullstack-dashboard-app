@@ -4,6 +4,8 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import axios from "axios";
+import { setChartSeries } from "./metricsSlice";
+import { type AppDispatch } from "../app/store";
 
 export interface DataPoint {
   timestamp: number;
@@ -29,22 +31,31 @@ const initialState: ChartsState = {
   error: null,
 };
 
-// 1) Fetch all charts (GET /api/charts)
-export const fetchCharts = createAsyncThunk<Chart[]>(
-  "charts/fetchCharts",
-  async (_, thunkAPI) => {
-    try {
-      const response = await axios.get("/api/charts");
-      return response.data as Chart[];
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(
-        err.response?.data?.message || "Error fetching charts"
-      );
-    }
-  }
-);
+// Fetch all charts (GET /api/charts)
+export const fetchCharts = createAsyncThunk<
+  Chart[],
+  void,
+  { dispatch: AppDispatch; rejectValue: string }
+>("charts/fetchCharts", async (_, thunkAPI) => {
+  try {
+    const response = await axios.get("/api/charts");
+    const charts: Chart[] = response.data;
 
-// 2) Create a new chart (POST /api/charts) → admin only
+    // ── THIS IS ESSENTIAL ──
+    charts.forEach((chart) => {
+      thunkAPI.dispatch(setChartSeries({ id: chart.id, series: chart.series }));
+    });
+    // ────────────────────────
+
+    return charts;
+  } catch (err: any) {
+    return thunkAPI.rejectWithValue(
+      err.response?.data?.message || "Error fetching charts"
+    );
+  }
+});
+
+// Create a new chart (POST /api/charts) → admin only
 export const createChart = createAsyncThunk<
   Chart,
   { name: string; series: DataPoint[] },
@@ -60,7 +71,7 @@ export const createChart = createAsyncThunk<
   }
 });
 
-// 3) Update a chart (PUT /api/charts/:id) → admin only
+// Update a chart (PUT /api/charts/:id) → admin only
 export const updateChart = createAsyncThunk<
   Chart,
   { id: number; name: string; series: DataPoint[] },
@@ -76,7 +87,7 @@ export const updateChart = createAsyncThunk<
   }
 });
 
-// 4) Delete a chart (DELETE /api/charts/:id) → admin only
+// Delete a chart (DELETE /api/charts/:id) → admin only
 export const deleteChart = createAsyncThunk<
   number,
   number,
